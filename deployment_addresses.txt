@@ -1,0 +1,8 @@
+sambhav@fedora:~/TBT/rainance/rainance$ npx hardhat run scripts/deploy.js --network sonic
+[dotenv@17.2.1] injecting env (2) from .env -- tip: ⚙️  specify custom .env file path with { path: '/custom/path/.env' }
+[dotenv@17.2.1] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+[dotenv@17.2.1] injecting env (0) from .env -- tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild
+Deploying with account: 0x4E5E5586F554Ff37F7839F5d70f849D03D5B6dEB
+KYCLib deployed to: 0x4b1401C0AA67C7e27c6c35F521B2b5da2342C399
+LimitLib deployed to: 0x4f2Bf3021F1499B3f1CE2D23A01a70225b01402a
+Remittance deployed to: 0x3fcac36FD5415e50ECA49e2B45F6B4D8893f029d

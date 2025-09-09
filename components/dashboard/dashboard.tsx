@@ -83,7 +83,7 @@ export function Dashboard() {
 
       {/* Dashboard Content */}
       <main>
-        {user.role === "admin" ? <AdminDashboard /> : <UserDashboard />}
+        {user.role === "admin" ? <AdminDashboard  /> : <UserDashboard />}
       </main>
     </div>
   )

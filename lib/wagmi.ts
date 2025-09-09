@@ -1,29 +1,39 @@
-// lib/wagmi.ts
 'use client'
 
 import { createConfig, http } from 'wagmi'
-import { mainnet, sepolia, localhost, hardhat } from 'wagmi/chains'
 import { injected, metaMask, walletConnect } from 'wagmi/connectors'
 
-// Define your supported chains
-const chains = [mainnet, sepolia, localhost, hardhat] as const
+const SONIC_RPC_URL = process.env.NEXT_PUBLIC_SONIC_RPC_URL as string
+const SONIC_CHAIN_ID = parseInt(process.env.NEXT_PUBLIC_CHAIN_ID || '14601')
 
-// Create wagmi configuration
+export const sonicTestnet = {
+  id: SONIC_CHAIN_ID,
+  name: 'Sonic Testnet',
+  network: 'sonic-testnet',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Sonic',
+    symbol: 'S',
+  },
+  rpcUrls: {
+    default: { http: [SONIC_RPC_URL] },
+    public: { http: [SONIC_RPC_URL] },
+  },
+  blockExplorers: {
+    default: { name: 'Sonic Explorer', url: 'https://explorer.testnet.soniclabs.com' },
+  },
+  testnet: true,
+} as const
+
 export const config = createConfig({
-  chains,
+  chains: [sonicTestnet],
   connectors: [
     injected(),
     metaMask(),
-    // Add WalletConnect if you have a project ID
-    // walletConnect({ projectId: 'your-project-id' }),
   ],
   transports: {
-    [mainnet.id]: http(),
-    [sepolia.id]: http(),
-    [localhost.id]: http('http://127.0.0.1:8545'),
-    [hardhat.id]: http('http://127.0.0.1:8545'),
+    [sonicTestnet.id]: http(SONIC_RPC_URL),
   },
 })
 
-// Re-export types
 export type Config = typeof config

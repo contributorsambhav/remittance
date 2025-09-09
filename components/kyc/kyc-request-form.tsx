@@ -2,52 +2,194 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { ConfirmationModal } from "@/components/ui/confirmation-modal"
-import { useContract } from "@/hooks/use-contract"
-import { useAuth } from "@/contexts/auth-context"
-import { FileCheck, Upload, AlertCircle, CheckCircle, Info } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { FileCheck, Upload, AlertCircle, CheckCircle, Info, AlertTriangle } from "lucide-react"
+import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi"
+import { parseAbi } from "viem"
+import { toast } from "sonner"
+
+// Contract ABI for KYC functions
+const REMITTANCE_ABI = parseAbi([
+  'function getKYCStatus(address user) external view returns (uint8)',
+  'function requestKYC(string calldata documentHash) external',
+])
+
+// Get contract address with validation
+const getContractAddress = (): `0x${string}` | undefined => {
+  const address = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS
+  
+  if (!address || !address.startsWith('0x') || address.length !== 42) {
+    return undefined
+  }
+  
+  return address as `0x${string}`
+}
+
+// KYC Status enum mapping
+const KYCStatus = {
+  0: 'NONE',
+  1: 'PENDING', 
+  2: 'APPROVED',
+  3: 'REJECTED'
+} as const
 
 export function KYCRequestForm() {
-  const { user } = useAuth()
-  const { requestKYC, isLoading, error } = useContract()
+  const { address, isConnected } = useAccount()
+  const { writeContract, data: hash, isPending, error: writeError } = useWriteContract()
+  
+  const [contractAddress, setContractAddress] = useState<`0x${string}` | undefined>()
   const [documentHash, setDocumentHash] = useState("")
-  const [documentFile, setDocumentFile] = useState<File | null>(null)
+  const [localError, setLocalError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setDocumentFile(file)
-      // In a real implementation, you would upload to IPFS and get the hash
-      // For demo purposes, we'll generate a mock hash
-      const mockHash = `Qm${Math.random().toString(36).substring(2, 15)}`
-      setDocumentHash(mockHash)
+  // Initialize contract address
+  useEffect(() => {
+    const addr = getContractAddress()
+    setContractAddress(addr)
+    
+    if (!addr) {
+      toast.error("Contract address not configured properly")
     }
-  }
+  }, [])
 
-  const handleConfirmSubmit = async () => {
-    setSuccess(false)
+  // Read current KYC status
+  const { 
+    data: kycStatusNum, 
+    refetch: refetchKYCStatus,
+    isLoading: loadingKYCStatus,
+    error: errorKYCStatus,
+    isError: hasErrorKYCStatus 
+  } = useReadContract({
+    address: contractAddress,
+    abi: REMITTANCE_ABI,
+    functionName: 'getKYCStatus',
+    args: [address!],
+    account: address,
+    query: {
+      enabled: !!contractAddress && !!address && isConnected,
+    }
+  })
 
-    const result = await requestKYC(documentHash)
-    if (result) {
+  // Wait for transaction confirmation
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  })
+
+  // Parse KYC status
+  const kycStatus = kycStatusNum !== undefined ? KYCStatus[kycStatusNum as keyof typeof KYCStatus] : undefined
+
+  // Handle successful transaction
+  useEffect(() => {
+    if (isConfirmed) {
       setSuccess(true)
       setDocumentHash("")
-      setDocumentFile(null)
+      setLocalError(null)
+      toast.success("KYC request submitted successfully!")
+      
+      // Refetch status after a delay
+      setTimeout(() => {
+        refetchKYCStatus()
+      }, 2000)
+    }
+  }, [isConfirmed, refetchKYCStatus])
+
+  // Handle write errors
+  useEffect(() => {
+    if (writeError) {
+      console.error("KYC request error:", writeError)
+      setLocalError(writeError.message || "Transaction failed")
+      toast.error("Failed to submit KYC request")
+    }
+  }, [writeError])
+
+  const handleConfirmSubmit = async () => {
+    if (!contractAddress || !documentHash.trim()) {
+      setLocalError("Please provide a document hash")
+      return
+    }
+
+    setSuccess(false)
+    setLocalError(null)
+
+    try {
+      console.log("📞 Calling requestKYC with hash:", documentHash)
+      
+      await writeContract({
+        address: contractAddress,
+        abi: REMITTANCE_ABI,
+        functionName: 'requestKYC',
+        args: [documentHash.trim()],
+      })
+      
+      console.log("✅ KYC request transaction submitted")
+      
+    } catch (error) {
+      console.error('❌ KYC request failed:', error)
+      setLocalError(error instanceof Error ? error.message : "Transaction failed")
     }
   }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    setLocalError(null)
     // Form validation is handled by the confirmation modal trigger
   }
 
-  const canSubmitKYC = user?.kycStatus === "NONE" || user?.kycStatus === "REJECTED"
+  const handleHashChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDocumentHash(e.target.value)
+    setLocalError(null)
+    setSuccess(false)
+  }
+
+  // Determine if user can submit KYC
+  const canSubmitKYC = kycStatus === "NONE" || kycStatus === "REJECTED"
+  const isTransactionInProgress = isPending || isConfirming
+
+  // Show connection issues
+  if (!isConnected) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileCheck className="h-5 w-5" />
+            KYC Verification Request
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <AlertTriangle className="h-8 w-8 text-yellow-500 mx-auto mb-2" />
+            <p className="text-muted-foreground">Please connect your wallet to submit KYC request</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  if (!contractAddress) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileCheck className="h-5 w-5" />
+            KYC Verification Request
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-4">
+            <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+            <p className="text-muted-foreground">Contract address not configured</p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
     <Card>
@@ -58,44 +200,58 @@ export function KYCRequestForm() {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {!canSubmitKYC ? (
+        {loadingKYCStatus ? (
+          <div className="space-y-4">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-20 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+        ) : hasErrorKYCStatus ? (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Error loading KYC status. Please refresh the page and try again.
+            </AlertDescription>
+          </Alert>
+        ) : !canSubmitKYC ? (
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              {user?.kycStatus === "PENDING"
+              {kycStatus === "PENDING"
                 ? "Your KYC request is currently under review. Please wait for admin approval."
-                : "Your KYC has already been approved. No further action needed."}
+                : kycStatus === "APPROVED" 
+                ? "Your KYC has already been approved. No further action needed."
+                : "Unable to determine KYC status. Please refresh and try again."}
             </AlertDescription>
           </Alert>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="document">Identity Document</Label>
-              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                <p className="text-sm text-muted-foreground mb-2">
-                  Upload your government-issued ID, passport, or driver's license
-                </p>
-                <Input
-                  id="document"
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={handleFileChange}
-                  className="max-w-xs mx-auto"
-                />
-              </div>
-              {documentFile && <p className="text-sm text-muted-foreground">Selected: {documentFile.name}</p>}
+              <Label htmlFor="documentHash">Document Hash (IPFS/Storage Hash)</Label>
+              <Input
+                id="documentHash"
+                type="text"
+                placeholder="Enter your document hash (e.g., QmXXX...)"
+                value={documentHash}
+                onChange={handleHashChange}
+                className="font-mono text-sm"
+                disabled={isTransactionInProgress}
+              />
+              <p className="text-xs text-muted-foreground">
+                Provide the hash of your uploaded identity document. This will be stored on the blockchain for verification.
+              </p>
             </div>
 
-            {documentHash && (
-              <div className="space-y-2">
-                <Label>Document Hash (IPFS)</Label>
-                <Input value={documentHash} readOnly className="font-mono text-sm" />
-                <p className="text-xs text-muted-foreground">
-                  This hash will be stored on the blockchain for verification
-                </p>
-              </div>
-            )}
+            {/* Placeholder for future file upload */}
+            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center bg-muted/10">
+              <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground mb-2">
+                File upload integration coming soon
+              </p>
+              <p className="text-xs text-muted-foreground">
+                For now, please manually enter the document hash above
+              </p>
+            </div>
 
             <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
               <h4 className="font-medium text-blue-800 mb-2">KYC Requirements</h4>
@@ -104,36 +260,69 @@ export function KYCRequestForm() {
                 <li>• Clear, high-resolution image or PDF</li>
                 <li>• All information must be clearly visible</li>
                 <li>• Document must be valid and not expired</li>
+                <li>• Upload to IPFS or secure storage and provide the hash</li>
               </ul>
             </div>
 
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
+            {/* Transaction Status */}
+            {isTransactionInProgress && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-800">
+                  {isPending ? "Submitting transaction..." : "Waiting for confirmation..."}
+                  {hash && (
+                    <p className="text-xs mt-1 font-mono">
+                      Transaction: {hash.slice(0, 10)}...{hash.slice(-8)}
+                    </p>
+                  )}
+                </AlertDescription>
               </Alert>
             )}
 
+            {/* Error Display */}
+            {(localError || writeError) && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  {localError || writeError?.message || "Transaction failed"}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Success Display */}
             {success && (
               <Alert className="border-green-200 bg-green-50">
                 <CheckCircle className="h-4 w-4 text-green-600" />
                 <AlertDescription className="text-green-800">
                   KYC request submitted successfully! You will be notified once it's reviewed.
+                  {hash && (
+                    <p className="text-xs mt-1 font-mono">
+                      Transaction: {hash}
+                    </p>
+                  )}
                 </AlertDescription>
               </Alert>
             )}
 
             <ConfirmationModal
               trigger={
-                <Button type="button" disabled={isLoading || !documentHash} className="w-full">
-                  {isLoading ? "Submitting..." : "Submit KYC Request"}
+                <Button 
+                  type="button" 
+                  disabled={isTransactionInProgress || !documentHash.trim()} 
+                  className="w-full"
+                >
+                  {isTransactionInProgress 
+                    ? (isPending ? "Submitting..." : "Confirming...") 
+                    : "Submit KYC Request"
+                  }
                 </Button>
               }
               title="Submit KYC Request"
-              description={`Are you sure you want to submit your KYC request? Your document hash ${documentHash} will be stored on the blockchain for verification. This action cannot be undone.`}
+              description={`Are you sure you want to submit your KYC request? Your document hash "${documentHash}" will be stored on the blockchain for verification. This action cannot be undone.`}
               confirmText="Submit Request"
               onConfirm={handleConfirmSubmit}
               icon={<FileCheck className="h-5 w-5" />}
+              disabled={isTransactionInProgress || !documentHash.trim()}
             />
           </form>
         )}

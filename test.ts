@@ -1,5 +1,4 @@
 import { ethers } from "ethers";
-
 const provider = new ethers.JsonRpcProvider("https://rpc.testnet.soniclabs.com");
 const abi = [
     {
@@ -819,7 +818,6 @@ const contract = new ethers.Contract(
   abi,
   provider
 );
-
 (async () => {
   console.log("Owner:", await contract.owner());
   console.log("Balance:", await contract.getContractBalance());

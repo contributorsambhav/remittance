@@ -1,95 +1,76 @@
-// components/tabs/admin/users-tab.tsx
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import {
-  UserActionConfirmationModal,
-} from "@/components/ui/confirmation-modal"
-import {
-  Users,
-  Search,
-  Filter,
-  MoreHorizontal,
-  Pause,
-  Play,
-  UserCheck,
-  UserX,
-  Crown,
-} from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Crown, Filter, MoreHorizontal, Pause, Play, Search, UserCheck, UserX, Users } from 'lucide-react';
 
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { UserActionConfirmationModal } from '@/components/ui/confirmation-modal';
+import { useState } from 'react';
 export function UsersTab() {
-  const [searchTerm, setSearchTerm] = useState("")
-
+  const [searchTerm, setSearchTerm] = useState('');
   const allUsers = [
     {
-      id: "1",
-      address: "0x123...abc",
-      tier: "TIER2",
-      kycStatus: "APPROVED",
+      id: '1',
+      address: '0x123...abc',
+      tier: 'TIER2',
+      kycStatus: 'APPROVED',
       isWhitelisted: true,
       isBlacklisted: false,
       isFrozen: false,
-      balance: "1500.50",
+      balance: '1500.50'
     },
     {
-      id: "2",
-      address: "0x456...def",
-      tier: "TIER1",
-      kycStatus: "APPROVED",
+      id: '2',
+      address: '0x456...def',
+      tier: 'TIER1',
+      kycStatus: 'APPROVED',
       isWhitelisted: true,
       isBlacklisted: false,
       isFrozen: false,
-      balance: "750.25",
+      balance: '750.25'
     },
     {
-      id: "3",
-      address: "0x789...ghi",
-      tier: "VIP",
-      kycStatus: "APPROVED",
+      id: '3',
+      address: '0x789...ghi',
+      tier: 'VIP',
+      kycStatus: 'APPROVED',
       isWhitelisted: true,
       isBlacklisted: false,
       isFrozen: true,
-      balance: "5000.00",
-    },
-  ]
-
+      balance: '5000.00'
+    }
+  ];
   const getKYCStatusColor = (status: string) => {
     switch (status) {
-      case "APPROVED":
-        return "bg-green-100 text-green-800 border-green-200"
-      case "PENDING":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
-      case "REJECTED":
-        return "bg-red-100 text-red-800 border-red-200"
+      case 'APPROVED':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'PENDING':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'REJECTED':
+        return 'bg-red-100 text-red-800 border-red-200';
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
-  }
-
+  };
   const getTierColor = (tier: string) => {
     switch (tier) {
-      case "VIP":
-        return "bg-purple-100 text-purple-800 border-purple-200"
-      case "TIER3":
-        return "bg-blue-100 text-blue-800 border-blue-200"
-      case "TIER2":
-        return "bg-green-100 text-green-800 border-green-200"
-      case "TIER1":
-        return "bg-yellow-100 text-yellow-800 border-yellow-200"
+      case 'VIP':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'TIER3':
+        return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'TIER2':
+        return 'bg-green-100 text-green-800 border-green-200';
+      case 'TIER1':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
-        return "bg-gray-100 text-gray-800 border-gray-200"
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
-  }
-
+  };
   const handleUserAction = (action: string, userId: string) => {
-    console.log(`[v0] ${action} executed for user ${userId}`)
-    // Contract interaction logic here
-  }
-
+    console.log(`[v0] ${action} executed for user ${userId}`);
+  };
   return (
     <div className="space-y-6">
       <Card>
@@ -102,12 +83,7 @@ export function UsersTab() {
             <div className="flex items-center gap-2">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64"
-                />
+                <Input placeholder="Search users..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10 w-64" />
               </div>
               <Button variant="outline" size="sm">
                 <Filter className="h-4 w-4 mr-2" />
@@ -131,7 +107,6 @@ export function UsersTab() {
                       </div>
                     </div>
                   </div>
-
                   <div className="flex items-center gap-2">
                     <p className="text-sm text-muted-foreground">Balance: ${user.balance}</p>
                     <Button variant="outline" size="sm">
@@ -139,13 +114,11 @@ export function UsersTab() {
                     </Button>
                   </div>
                 </div>
-
                 <div className="flex items-center gap-2 mt-4">
                   <Button size="sm" variant="outline">
                     <Crown className="h-4 w-4 mr-2" />
                     Change Tier
                   </Button>
-
                   {user.isFrozen ? (
                     <UserActionConfirmationModal
                       trigger={
@@ -156,7 +129,7 @@ export function UsersTab() {
                       }
                       action="unfreeze"
                       userAddress={user.address}
-                      onConfirm={() => handleUserAction("unfreeze", user.id)}
+                      onConfirm={() => handleUserAction('unfreeze', user.id)}
                     />
                   ) : (
                     <UserActionConfirmationModal
@@ -168,10 +141,9 @@ export function UsersTab() {
                       }
                       action="freeze"
                       userAddress={user.address}
-                      onConfirm={() => handleUserAction("freeze", user.id)}
+                      onConfirm={() => handleUserAction('freeze', user.id)}
                     />
                   )}
-
                   {user.isWhitelisted ? (
                     <UserActionConfirmationModal
                       trigger={
@@ -182,7 +154,7 @@ export function UsersTab() {
                       }
                       action="remove-whitelist"
                       userAddress={user.address}
-                      onConfirm={() => handleUserAction("remove-whitelist", user.id)}
+                      onConfirm={() => handleUserAction('remove-whitelist', user.id)}
                     />
                   ) : (
                     <UserActionConfirmationModal
@@ -194,7 +166,7 @@ export function UsersTab() {
                       }
                       action="whitelist"
                       userAddress={user.address}
-                      onConfirm={() => handleUserAction("whitelist", user.id)}
+                      onConfirm={() => handleUserAction('whitelist', user.id)}
                     />
                   )}
                 </div>
@@ -204,5 +176,5 @@ export function UsersTab() {
         </CardContent>
       </Card>
     </div>
-  )
+  );
 }

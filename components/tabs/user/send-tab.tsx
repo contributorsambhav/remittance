@@ -1,7 +1,6 @@
-"use client"
+'use client';
 
-import { SendMoneyForm } from "@/components/contract/send-money-form"
-
+import { SendMoneyForm } from '@/components/contract/send-money-form';
 export function SendTab() {
-  return <SendMoneyForm />
+  return <SendMoneyForm />;
 }

@@ -13,7 +13,6 @@ export interface User {
   todayUsed: string
   createdAt: string
 }
-
 export interface AuthContextType {
   user: User | null
   isLoading: boolean
@@ -21,7 +20,6 @@ export interface AuthContextType {
   logout: () => void
   refreshUser: () => Promise<void>
 }
-
 export interface KYCRequest {
   documentHash: string
   timestamp: string

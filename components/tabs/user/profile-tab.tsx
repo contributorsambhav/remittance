@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { toast } from 'sonner';
+
 const REMITTANCE_ABI = parseAbi(['function getUserInfo(address user) external view returns (uint8 tier, uint256 dailyLimit, uint256 todayUsed, uint256 balance, bool isWhitelistedUser, bool isBlacklistedUser, bool isFrozenUser, uint8 kycStatus)', 'function getKYCRequest(address user) external view returns (string memory documentHash, uint256 timestamp, uint8 status, string memory rejectionReason)', 'function getKYCStatus(address user) external view returns (uint8)', 'function getBalance(address user) external view returns (uint256)', 'function isWhitelisted(address user) external view returns (bool)', 'function isBlacklisted(address user) external view returns (bool)', 'function isFrozen(address user) external view returns (bool)', 'function getRemainingLimit(address user) external view returns (uint256)', 'function getTierLimit(uint8 tier) external view returns (uint256)']);
 const getContractAddress = (): `0x${string}` | undefined => {
   const address = process.env.NEXT_PUBLIC_CONTRACT_ADDRESS;
@@ -271,34 +272,38 @@ export function ProfileTab() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm">Whitelisted Status</span>
+              <span className="text-sm">Whitelisted Status</span>
               </div>
               {isLoading ? (
-                renderLoadingState()
+              renderLoadingState()
               ) : hasErrorUserInfo ? (
-                renderErrorState('Error loading whitelist status')
-              ) : isWhitelistedUser !== undefined ? (
-                <Badge variant={isWhitelistedUser ? 'outline' : 'destructive'} className={isWhitelistedUser ? 'text-green-600 border-green-200' : ''}>
-                  {isWhitelistedUser ? 'Whitelisted' : 'Not Whitelisted'}
-                </Badge>
+              renderErrorState('Error loading whitelist status')
+              ) : isBlacklistedUser !== undefined && isWhitelistedUser !== undefined ? (
+              isBlacklistedUser ? (
+                <Badge variant="destructive">Blacklisted</Badge>
               ) : (
-                <Badge variant="secondary">Unknown</Badge>
+                <Badge variant={isWhitelistedUser ? 'outline' : 'destructive'} className={isWhitelistedUser ? 'text-green-600 border-green-200' : ''}>
+                {isWhitelistedUser ? 'Whitelisted' : 'Not Whitelisted'}
+                </Badge>
+              )
+              ) : (
+              <Badge variant="secondary">Unknown</Badge>
               )}
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <span className="text-sm">Account Status</span>
+              <span className="text-sm">Account Status</span>
               </div>
               {isLoading ? (
-                renderLoadingState()
+              renderLoadingState()
               ) : hasErrorUserInfo ? (
-                renderErrorState('Error loading account status')
-              ) : isBlacklistedUser !== undefined && isFrozenUser !== undefined ? (
-                <Badge variant={isBlacklistedUser || isFrozenUser ? 'destructive' : 'outline'} className={!(isBlacklistedUser || isFrozenUser) ? 'text-green-600 border-green-200' : ''}>
-                  {isBlacklistedUser ? 'Blacklisted' : isFrozenUser ? 'Frozen' : 'Normal'}
-                </Badge>
+              renderErrorState('Error loading account status')
+              ) : isFrozenUser !== undefined ? (
+              <Badge variant={isFrozenUser ? 'destructive' : 'outline'} className={!isFrozenUser ? 'text-green-600 border-green-200' : ''}>
+                {isFrozenUser ? 'Frozen' : 'Active'}
+              </Badge>
               ) : (
-                <Badge variant="secondary">Unknown</Badge>
+              <Badge variant="secondary">Unknown</Badge>
               )}
             </div>
             <Separator />

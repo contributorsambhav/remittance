@@ -83,6 +83,14 @@ export function UserActionConfirmationModal({ trigger, action, userAddress, onCo
           variant: 'default' as const,
           icon: <Crown className="h-5 w-5" />
         };
+      default:
+        return {
+          title: 'Unknown Action',
+          description: 'This action is not recognized.',
+          confirmText: 'Confirm',
+          variant: 'default' as const,
+          icon: null
+        };
     }
   };
   const details = getActionDetails();
